@@ -8,17 +8,17 @@ const LandingPage = () => {
       {/* Navbar */}
       <nav className="flex items-center justify-between px-12 py-5 bg-white shadow-sm">
         <div className="flex items-center gap-2">
-          <img src="/vite.svg" alt="logo" className="h-7 w-7" />
-          <span className="text-2xl font-extrabold text-[#6c47ff] tracking-tight">
+          <img src="/vite.svg" alt="logo" className="h-7 w-7 cursor-pointer" onClick={() => window.location.href = '/dashboard'} />
+          <span className="text-2xl font-extrabold text-[#6c47ff] tracking-tight cursor-pointer" onClick={() => window.location.href = '/dashboard'}>
             AI Interview Prep
           </span>
         </div>
         <div className="flex items-center gap-8">
           <a
-            href="#"
+            href="/dashboard"
             className="text-base font-medium text-gray-800 hover:text-[#6c47ff] transition"
           >
-            Home
+            Dashboard
           </a>
           <a
             href="#features"

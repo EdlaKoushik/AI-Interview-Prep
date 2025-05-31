@@ -12,16 +12,18 @@ const Dashboard = () => {
       {/* Navbar */}
       <nav className="flex items-center justify-between px-4 md:px-12 py-5 bg-white shadow-sm">
         <div className="flex items-center gap-2">
-          <img src="/vite.svg" alt="logo" className="h-7 w-7" />
-          <span className="text-2xl font-extrabold text-[#6c47ff] tracking-tight">AI Interview Prep App</span>
+          <img src="/vite.svg" alt="logo" className="h-7 w-7 cursor-pointer" onClick={() => window.location.href = '/dashboard'} />
+          <span className="text-2xl font-extrabold text-[#6c47ff] tracking-tight cursor-pointer" onClick={() => window.location.href = '/dashboard'}>
+            AI Interview Prep App
+          </span>
         </div>
         <div className="flex items-center gap-8">
-          <a href="/" className="text-base font-medium text-gray-800 hover:text-[#6c47ff] transition">Home</a>
+          <a href="/dashboard" className="text-base font-medium text-gray-800 hover:text-[#6c47ff] transition">Dashboard</a>
           <a href="/upgrade" className="text-base font-medium text-gray-800 hover:text-[#6c47ff] transition">Upgrade</a>
           <a href="/settings" className="text-base font-medium text-gray-800 hover:text-[#6c47ff] transition">Settings</a>
         </div>
         <div className="flex items-center gap-4">
-          <button className="ml-2 p-2 rounded-full  hover:bg-[#e0d7ff] transition cursor-pointer" aria-label="Toggle dark mode">
+          <button className="ml-2 p-2 rounded-full hover:bg-[#e0d7ff] transition cursor-pointer" aria-label="Toggle dark mode">
             <img src={toggleImg} alt="toggle" className="w-7 h-7 object-contain" />
           </button>
           <SignedOut >

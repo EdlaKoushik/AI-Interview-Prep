@@ -17,6 +17,29 @@ const Upgrade = () => (
         </div>
       </div>
     </div>
+    <nav className="flex items-center justify-between px-4 md:px-12 py-5 bg-white shadow-sm">
+      <div className="flex items-center gap-2">
+        <img src="/vite.svg" alt="logo" className="h-7 w-7 cursor-pointer" onClick={() => window.location.href = '/dashboard'} />
+        <span className="text-2xl font-extrabold text-[#6c47ff] tracking-tight cursor-pointer" onClick={() => window.location.href = '/dashboard'}>
+          AI Interview Prep
+        </span>
+      </div>
+      <div className="flex items-center gap-8">
+        <a href="/dashboard" className="text-base font-medium text-gray-800 hover:text-[#6c47ff] transition">Dashboard</a>
+        <a href="/upgrade" className="text-base font-medium text-gray-800 hover:text-[#6c47ff] transition">Upgrade</a>
+        <a href="/settings" className="text-base font-medium text-gray-800 hover:text-[#6c47ff] transition">Settings</a>
+      </div>
+      <div className="flex items-center gap-4">
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="px-6 py-2 rounded-lg border border-[#d1d5db] bg-white text-[#6c47ff] font-semibold text-base shadow-sm hover:bg-[#f3f0ff] transition">Sign In</button>
+          </SignInButton>
+        </SignedOut>
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" />
+        </SignedIn>
+      </div>
+    </nav>
   </div>
 );
 
