@@ -1,12 +1,38 @@
-import React from 'react';
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
+import React, { useEffect, useState } from 'react';
+import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { FaVideo, FaMicrophone, FaFont, FaHistory, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import axios from 'axios';
+import { FaHistory, FaCalendarAlt, FaClock } from 'react-icons/fa';
 import toggleImg from '../assets/toggle.png';
 import plusImg from '../assets/plus.png';
 
 const Dashboard = () => {
+  const [interviews, setInterviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { getToken } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchInterviews = async () => {
+      setLoading(true);
+      try {
+        const token = await getToken();
+        const res = await axios.get('/api/interview/all', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          withCredentials: true,
+        });
+        console.log('Fetched interviews:', res.data.interviews); // Debug log
+        setInterviews(res.data.interviews || []);
+      } catch (err) {
+        console.error('Error fetching interviews:', err); // Debug log
+        setInterviews([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInterviews();
+  }, [getToken]);
+
   return (
     <div className="bg-[#f7f7fb] min-h-screen font-sans flex flex-col min-h-screen">
       {/* Navbar */}
@@ -55,7 +81,7 @@ const Dashboard = () => {
               className="bg-[#6c47ff] text-white font-bold px-8 py-3 rounded-xl shadow hover:bg-[#4f2fcf] transition text-lg flex items-center gap-2"
               onClick={() => navigate('/create-interview')}
             >
-              <FaVideo className="mr-2" /> Start Now
+              Start Now
             </button>
           </div>
         </div>
@@ -66,65 +92,62 @@ const Dashboard = () => {
             <FaHistory />
             Past Interviews
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {/* Video Interview Card */}
-            <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 min-w-[260px]">
-              <div className="flex items-center gap-2 mb-2">
-               
-                <span className="font-bold text-lg text-gray-900">Frontend Interview</span>
-              </div>
-              <div className="flex items-center gap-4 text-gray-500 text-sm mb-1">
-                <FaCalendarAlt /> May 24, 2025
-                <FaClock className="ml-2" /> 14:00
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="bg-[#e6f9ed] text-[#1db954] font-bold px-3 py-1 rounded-lg text-xs">Score: 87%</span>
-                <span className="text-gray-500 text-xs">"Excellent clarity and confidence, minor filler words"</span>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <button className="bg-white border border-[#6c47ff] text-[#6c47ff] font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#f3f0ff] transition flex-1">Feedback Report</button>
-                <button className="bg-[#6c47ff] text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#4f2fcf] transition flex-1">Retake</button>
-              </div>
+          {loading ? (
+            <div>Loading...</div>
+          ) : interviews.length === 0 ? (
+            <div>No interviews found.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {interviews.map((interview) => {
+                // Calculate score and feedback summary if available
+                let score = 0;
+                let summary = '';
+                if (Array.isArray(interview.answers) && interview.answers.length > 0) {
+                  const answered = interview.answers.filter(a => a && a.length > 0).length;
+                  score = Math.round((answered / (interview.questions?.length || 1)) * 100);
+                }
+                if (Array.isArray(interview.feedback) && interview.feedback.length > 0) {
+                  summary = interview.feedback.find(f => f && f.length > 0) || '';
+                } else if (interview.overallFeedback) {
+                  summary = interview.overallFeedback;
+                }
+                // Date/time formatting
+                const created = new Date(interview.createdAt);
+                const dateStr = created.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                const timeStr = created.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+                return (
+                  <div
+                    key={interview._id}
+                    className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 hover:shadow-lg transition"
+                  >
+                    <div className="font-bold text-xl text-gray-900 mb-2">{interview.jobRole || 'Interview'}</div>
+                    <div className="flex items-center gap-4 text-gray-500 text-sm mb-1">
+                      <FaCalendarAlt /> {dateStr}
+                      <FaClock className="ml-2" /> {timeStr}
+                    </div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="bg-[#e6f9ed] text-[#1db954] font-bold px-3 py-1 rounded-lg text-xs">Score: {score}%</span>
+                      <span className="text-gray-500 text-xs">{summary ? `"${summary}"` : ''}</span>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        className="bg-white border border-[#6c47ff] text-[#6c47ff] font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#f3f0ff] transition flex-1"
+                        onClick={() => navigate(`/feedback/${interview._id}`)}
+                      >
+                        Feedback Report
+                      </button>
+                      <button
+                        className="bg-[#6c47ff] text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#4f2fcf] transition flex-1"
+                        onClick={() => navigate(`/interview-session/${interview._id}`)}
+                      >
+                        Retake
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            {/* Audio Interview Card */}
-            <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 min-w-[260px]">
-              <div className="flex items-center gap-2 mb-2">
-                
-                <span className="font-bold text-lg text-gray-900">Full stack Interview</span>
-              </div>
-              <div className="flex items-center gap-4 text-gray-500 text-sm mb-1">
-                <FaCalendarAlt /> May 15, 2025
-                <FaClock className="ml-2" /> 10:30
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="bg-[#fffbe6] text-[#eab308] font-bold px-3 py-1 rounded-lg text-xs">Score: 71%</span>
-                <span className="text-gray-500 text-xs">"Good articulation, but improve on answering speed"</span>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <button className="bg-white border border-[#6c47ff] text-[#6c47ff] font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#f3f0ff] transition flex-1">Feedback Report</button>
-                <button className="bg-[#6c47ff] text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#4f2fcf] transition flex-1">Retry</button>
-              </div>
-            </div>
-            {/* Text Interview Card */}
-            <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 min-w-[260px]">
-              <div className="flex items-center gap-2 mb-2">
-                
-                <span className="font-bold text-lg text-gray-900">Backend Interview</span>
-              </div>
-              <div className="flex items-center gap-4 text-gray-500 text-sm mb-1">
-                <FaCalendarAlt /> May 2, 2025
-                <FaClock className="ml-2" /> 18:10
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="bg-[#f3f0ff] text-[#6c47ff] font-bold px-3 py-1 rounded-lg text-xs">Score: 94%</span>
-                <span className="text-gray-500 text-xs">"Outstanding! Answers are precise & relevant."</span>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <button className="bg-white border border-[#6c47ff] text-[#6c47ff] font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#f3f0ff] transition flex-1">Feedback Report</button>
-                <button className="bg-[#6c47ff] text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-[#4f2fcf] transition flex-1">Retry</button>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </main>
 

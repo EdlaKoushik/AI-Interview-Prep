@@ -7,6 +7,7 @@ import Upgrade from './Pages/Upgrade';
 import Settings from './Pages/Settings';
 import InterviewCreationPage from './Pages/InterviewCreationPage';
 import InterviewSessionPage from './Pages/InterviewSessionPage';
+import FeedbackPage from './Pages/FeedbackPage';
 import { useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import axios from 'axios';
@@ -66,6 +67,8 @@ export default function App() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/create-interview" element={<InterviewCreationPage />} />
       <Route path="/interview-session/:id" element={<InterviewSessionPage />} />
+      <Route path="/feedback/:id" element={<FeedbackPage />} />
+      <Route path="/feedback" element={<FeedbackPage />} />
       {/* Add more routes here as needed */}
     </Routes>
   );

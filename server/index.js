@@ -1,127 +1,13 @@
-// import express from 'express';
-// import mongoose from 'mongoose';
-// import cors from 'cors';
-// import dotenv from 'dotenv';
-// import { generateQuestions } from './utils/gemini.js';
-
-// dotenv.config();
-
-// const app = express();
-
-// // Middleware
-// app.use(cors({
-//   origin: ['http://localhost:5174', 'http://localhost:5173'],
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
-// app.use(express.json());
-
-// // MongoDB connection
-// mongoose.connect(process.env.MONGODB_URI)
-//   .then(() => console.log('MongoDB connected'))
-//   .catch((err) => console.error('MongoDB connection error:', err));
-
-// // Interview Session Schema
-// const interviewSessionSchema = new mongoose.Schema({
-//   mode: { type: String, enum: ['text', 'audio', 'video'], required: true },
-//   jobRole: { type: String, required: true },
-//   industry: { type: String },
-//   experience: { type: String },
-//   resumeText: { type: String },
-//   jobDescription: { type: String },
-//   questions: [{ type: String }],
-//   status: { type: String, enum: ['created', 'in_progress', 'completed'], default: 'created' },
-// }, { timestamps: true });
-
-// const InterviewSession = mongoose.model('InterviewSession', interviewSessionSchema);
-
-// // Routes
-// app.get('/', (req, res) => {
-//   res.json({ message: 'AI Interview Prep API is running' });
-// });
-
-// // Create interview session
-// app.post('/api/interview/create', async (req, res) => {
-//   try {
-//     console.log('Received interview creation request:', req.body);
-//     const { mode, jobRole, industry, experience, resumeText, jobDescription } = req.body;
-    
-//     if (!jobRole || !experience) {
-//       console.log('Missing required fields:', { jobRole, experience });
-//       return res.status(400).json({ message: 'Job role and experience are required' });
-//     }
-    
-//     const interview = await InterviewSession.create({
-//       mode, jobRole, industry, experience, resumeText, jobDescription,
-//       status: 'created'
-//     });
-    
-//     console.log('Interview created successfully:', interview._id);
-//     res.status(201).json({ success: true, interview });
-//   } catch (err) {
-//     console.error('Error creating interview:', err);
-//     res.status(500).json({ message: err.message });
-//   }
-// });
-
-// // Generate questions and update session
-// app.post('/api/interview/start', async (req, res) => {
-//   try {
-//     console.log('Received question generation request:', req.body);
-//     const { interviewId } = req.body;
-    
-//     const interview = await InterviewSession.findById(interviewId);
-//     if (!interview) {
-//       console.log('Interview not found:', interviewId);
-//       return res.status(404).json({ message: 'Interview not found' });
-//     }
-
-//     console.log('Generating questions for interview:', interviewId);
-//     const questions = await generateQuestions(
-//       interview.jobRole,
-//       interview.industry,
-//       interview.experience,
-//       interview.jobDescription,
-//       interview.resumeText
-//     );
-
-//     interview.questions = questions;
-//     interview.status = 'in_progress';
-//     await interview.save();
-
-//     console.log('Questions generated successfully:', questions.length);
-//     res.status(200).json({ success: true, questions });
-//   } catch (err) {
-//     console.error('Error generating questions:', err);
-//     res.status(500).json({ message: err.message });
-//   }
-// });
-
-// // Get interview session
-// app.get('/api/interview/:id', async (req, res) => {
-//   try {
-//     const interview = await InterviewSession.findById(req.params.id);
-//     if (!interview) {
-//       return res.status(404).json({ message: 'Interview not found' });
-//     }
-//     res.json({ success: true, interview });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// });
-
-// const PORT = process.env.PORT || 5001;
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
-
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 // ⬇️ Switch to Together AI generator
 import { generateQuestions } from './utils/together.js';
+import multer from 'multer';
+import axios from 'axios';
+// Import InterviewSession model from models directory
+import interviewSessionSchema from './models/InterviewSession.js';
 
 dotenv.config();
 
@@ -141,19 +27,11 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// Interview Session Schema (✅ includes jobDescription)
-const interviewSessionSchema = new mongoose.Schema({
-  mode: { type: String, enum: ['text', 'audio', 'video'], required: true },
-  jobRole: { type: String, required: true },
-  industry: { type: String },
-  experience: { type: String },
-  resumeText: { type: String },
-  jobDescription: { type: String },
-  questions: [{ type: String }],
-  status: { type: String, enum: ['created', 'in_progress', 'completed'], default: 'created' },
-}, { timestamps: true });
-
+// Use the imported schema for the InterviewSession model
 const InterviewSession = mongoose.model('InterviewSession', interviewSessionSchema);
+
+// Multer setup for audio uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Routes
 app.get('/', (req, res) => {
@@ -216,7 +94,17 @@ app.post('/api/interview/start', async (req, res) => {
   }
 });
 
-// Get interview session
+// Get all interview sessions (for dashboard)
+app.get('/api/interview/all', async (req, res) => {
+  try {
+    const interviews = await InterviewSession.find().sort({ createdAt: -1 });
+    res.json({ interviews });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get interview session by id
 app.get('/api/interview/:id', async (req, res) => {
   try {
     const interview = await InterviewSession.findById(req.params.id);
@@ -226,6 +114,79 @@ app.get('/api/interview/:id', async (req, res) => {
     res.json({ success: true, interview });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// Submit interview answers and generate feedback
+app.post('/api/interview/submit', async (req, res) => {
+  try {
+    const { interviewId, answers, mode } = req.body;
+    console.log('Received submit:', { interviewId, answers, mode });
+    const interview = await InterviewSession.findById(interviewId);
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+    interview.answers = answers;
+    // Generate per-question feedback (dummy for now, replace with AI call)
+    const feedback = answers.map((ans, idx) =>
+      ans && ans.length > 0
+        ? `Good answer for Q${idx + 1}.`
+        : `No answer provided for Q${idx + 1}.`
+    );
+    // Generate overall feedback (dummy for now, replace with AI call)
+    const overallFeedback =
+      mode === 'audio'
+        ? 'Great communication skills! Work on clarity and pacing.'
+        : 'Well-structured answers. Try to be more concise.';
+    interview.feedback = feedback;
+    interview.overallFeedback = overallFeedback;
+    interview.status = 'completed';
+    await interview.save();
+    console.log('Saved interview:', {
+      answers: interview.answers,
+      feedback: interview.feedback,
+      overallFeedback: interview.overallFeedback,
+    });
+    res.status(200).json({ success: true, feedback, overallFeedback });
+  } catch (err) {
+    console.error('Error submitting interview:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Whisper transcription endpoint
+app.post('/api/interview/transcribe', upload.single('audio'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No audio file uploaded.' });
+    }
+    // Call OpenAI Whisper API
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      return res.status(500).json({ message: 'OpenAI API key not set.' });
+    }
+    const formData = new FormData();
+    formData.append('file', req.file.buffer, {
+      filename: req.file.originalname || 'audio.webm',
+      contentType: req.file.mimetype || 'audio/webm',
+    });
+    formData.append('model', 'whisper-1');
+    // Optionally: language, prompt, etc.
+    const response = await axios.post(
+      'https://api.openai.com/v1/audio/transcriptions',
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${openaiApiKey}`,
+        },
+        maxBodyLength: Infinity,
+      }
+    );
+    res.json({ text: response.data.text });
+  } catch (err) {
+    console.error('Whisper transcription error:', err.response?.data || err.message);
+    res.status(500).json({ message: 'Transcription failed', error: err.response?.data || err.message });
   }
 });
 
