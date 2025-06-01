@@ -74,7 +74,7 @@ const InterviewCreationPage = () => {
       }
 
       // 1. Create interview session
-      const createRes = await axios.post('/api/interview/create', {
+      const createRes = await axios.post('http://localhost:5001/api/interview/create', {
         mode,
         jobRole: role,
         industry,
@@ -97,7 +97,7 @@ const InterviewCreationPage = () => {
       toast.success('Interview created successfully!');
 
       // 2. Start interview (send resumeText for custom questions)
-      const startRes = await axios.post('/api/interview/start', {
+      const startRes = await axios.post('http://localhost:5001/api/interview/start', {
         interviewId,
         resumeText: resumeText || undefined,
       }, {
