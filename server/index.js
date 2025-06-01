@@ -6,12 +6,16 @@ import dotenv from 'dotenv';
 import { generateQuestions } from './utils/together.js';
 import multer from 'multer';
 import axios from 'axios';
+import Stripe from 'stripe';
 // Import InterviewSession model from models directory
 import interviewSessionSchema from './models/InterviewSession.js';
+// User model
+import User from './models/User.js';
 
 dotenv.config();
 
 const app = express();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Middleware
 app.use(cors({
@@ -43,11 +47,26 @@ app.post('/api/interview/create', async (req, res) => {
   try {
     console.log('Received interview creation request:', req.body);
     const { mode, jobRole, industry, experience, resumeText, jobDescription } = req.body;
-
+    const userId = req.user?.id || req.user?._id || req.body.userId || null;
     if (!jobRole || !experience) {
       return res.status(400).json({ message: 'Job role and experience are required' });
     }
-
+    // Enforce free tier limit: 3 interviews/month
+    let isPremium = false;
+    if (userId) {
+      const user = await User.findOne({ clerkUserId: userId });
+      isPremium = user && user.plan === 'Premium';
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0,0,0,0);
+      const interviewCount = await InterviewSession.countDocuments({
+        'userId': userId,
+        createdAt: { $gte: startOfMonth },
+      });
+      if (!isPremium && interviewCount >= 3) {
+        return res.status(403).json({ message: 'Free plan limit reached. Upgrade to Premium for unlimited interviews.' });
+      }
+    }
     const interview = await InterviewSession.create({
       mode,
       jobRole,
@@ -55,9 +74,9 @@ app.post('/api/interview/create', async (req, res) => {
       experience,
       resumeText,
       jobDescription,
-      status: 'created'
+      status: 'created',
+      ...(userId && { userId })
     });
-
     res.status(201).json({ success: true, interview });
   } catch (err) {
     console.error('Error creating interview:', err);
@@ -223,6 +242,51 @@ app.post('/api/interview/transcribe', upload.single('audio'), async (req, res) =
   } catch (err) {
     console.error('Whisper transcription error:', err.response?.data || err.message);
     res.status(500).json({ message: 'Transcription failed', error: err.response?.data || err.message });
+  }
+});
+
+// Stripe Checkout session endpoint
+app.post('/api/stripe/create-checkout-session', async (req, res) => {
+  try {
+    const { clerkUserId, email } = req.body;
+    if (!clerkUserId || !email) {
+      return res.status(400).json({ message: 'Missing user info' });
+    }
+    // Find or create user
+    let user = await User.findOne({ clerkUserId });
+    if (!user) {
+      user = await User.create({ clerkUserId, email });
+    }
+    // Create Stripe customer if not exists
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email,
+        metadata: { clerkUserId },
+      });
+      customerId = customer.id;
+      user.stripeCustomerId = customerId;
+      await user.save();
+    }
+    // Create Stripe Checkout session for subscription
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      customer: customerId,
+      line_items: [
+        {
+          price: process.env.STRIPE_PREMIUM_PRICE_ID, // Set this in your .env
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.FRONTEND_URL}/upgrade?success=1`,
+      cancel_url: `${process.env.FRONTEND_URL}/upgrade?canceled=1`,
+      metadata: { clerkUserId },
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Stripe checkout error:', err);
+    res.status(500).json({ message: err.message });
   }
 });
 

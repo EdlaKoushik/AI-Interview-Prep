@@ -53,28 +53,22 @@ const InterviewCreationPage = () => {
 
   const handleStartInterview = async () => {
     setLoading(true);
-    setError('');
-
-    // Show immediate feedback
-    toast.loading('Starting interview...');
-
-    // Validate required fields
+    setError("");
+    toast.loading("Starting interview...");
     if (!role || !experience) {
-      setError('Job role and experience level are required');
-      toast.error('Please fill in all required fields');
+      setError("Job role and experience level are required");
+      toast.error("Please fill in all required fields");
       setLoading(false);
       return;
     }
-
     try {
       const token = await getToken();
       if (!token) {
-        toast.error('Not authenticated. Please sign in.');
-        throw new Error('Not authenticated. Please sign in.');
+        toast.error("Not authenticated. Please sign in.");
+        throw new Error("Not authenticated. Please sign in.");
       }
-
       // 1. Create interview session
-      const createRes = await axios.post('http://localhost:5001/api/interview/create', {
+      const createRes = await axios.post('/api/interview/create', {
         mode,
         jobRole: role,
         industry,
@@ -82,69 +76,38 @@ const InterviewCreationPage = () => {
         jobDescription: jobDesc,
         resumeText,
       }, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-
       if (!createRes.data?.interview?._id) {
         toast.error('Failed to create interview session');
         throw new Error('Invalid response from server');
       }
-
       const interviewId = createRes.data.interview._id;
       toast.success('Interview created successfully!');
-
       // 2. Start interview (send resumeText for custom questions)
-      const startRes = await axios.post('http://localhost:5001/api/interview/start', {
+      const startRes = await axios.post('/api/interview/start', {
         interviewId,
         resumeText: resumeText || undefined,
       }, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-
-      // Clear any loading toasts
       toast.dismiss();
-      
-      // Show success toast and redirect
       toast.success('Interview started! Good luck!', {
         duration: 3000,
         position: 'top-center',
-        style: {
-          background: '#4CAF50',
-          color: '#fff'
-        },
+        style: { background: '#4CAF50', color: '#fff' },
       });
-
-      // Redirect after a short delay
       setTimeout(() => {
         navigate(`/interview-session/${interviewId}`);
       }, 1200);
     } catch (err) {
-      console.error('Interview creation error:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status
-      });
-
-      // Clear any loading toasts
       toast.dismiss();
-
       const errorMessage = err.response?.data?.message || err.message;
       setError(`Failed to start interview: ${errorMessage}`);
-      
-      // Show error toast
       toast.error(`Failed to start interview: ${errorMessage}`, {
         duration: 5000,
         position: 'top-center',
-        style: {
-          background: '#f44336',
-          color: '#fff'
-        },
+        style: { background: '#f44336', color: '#fff' },
       });
     } finally {
       setLoading(false);
