@@ -15,3 +15,8 @@ const interviewSessionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export default interviewSessionSchema;
+
+// In the interview creation endpoint, allow 'video' as a valid mode
+// In the frontend, add a 'video' option to the mode selection UI
+// In the interview session page, add a placeholder for video mode (e.g., webcam capture, or a message that it's coming soon)
+// In the feedback logic, add a branch for video mode feedback

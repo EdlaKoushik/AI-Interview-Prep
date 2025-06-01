@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaHistory, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import { FaHistory, FaCalendarAlt, FaClock, FaMicrophone, FaRegKeyboard, FaVideo } from 'react-icons/fa';
 import toggleImg from '../assets/toggle.png';
 import plusImg from '../assets/plus.png';
 
@@ -115,12 +115,20 @@ const Dashboard = () => {
                 const created = new Date(interview.createdAt);
                 const dateStr = created.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
                 const timeStr = created.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+                // Mode icon
+                let modeIcon = null;
+                if (interview.mode === 'audio') modeIcon = <FaMicrophone className="text-[#6c47ff] text-lg mr-2" title="Audio" />;
+                else if (interview.mode === 'video') modeIcon = <FaVideo className="text-[#6c47ff] text-lg mr-2" title="Video" />;
+                else modeIcon = <FaRegKeyboard className="text-[#6c47ff] text-lg mr-2" title="Text" />;
                 return (
                   <div
                     key={interview._id}
                     className="bg-white rounded-xl shadow p-6 flex flex-col gap-3 hover:shadow-lg transition"
                   >
-                    <div className="font-bold text-xl text-gray-900 mb-2">{interview.jobRole || 'Interview'}</div>
+                    <div className="flex items-center gap-2 font-bold text-xl text-gray-900 mb-2">
+                      {modeIcon}
+                      {interview.jobRole || 'Interview'}
+                    </div>
                     <div className="flex items-center gap-4 text-gray-500 text-sm mb-1">
                       <FaCalendarAlt /> {dateStr}
                       <FaClock className="ml-2" /> {timeStr}

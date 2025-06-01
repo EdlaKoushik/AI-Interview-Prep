@@ -30,7 +30,7 @@ mongoose.connect(process.env.MONGODB_URI)
 // Use the imported schema for the InterviewSession model
 const InterviewSession = mongoose.model('InterviewSession', interviewSessionSchema);
 
-// Multer setup for audio uploads
+// Multer setup for audio and video uploads
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Routes
@@ -117,6 +117,29 @@ app.get('/api/interview/:id', async (req, res) => {
   }
 });
 
+// Video upload endpoint for video mode answers
+app.post('/api/interview/upload-video', upload.single('video'), async (req, res) => {
+  try {
+    const { interviewId, questionIndex } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ message: 'No video file uploaded.' });
+    }
+    const interview = await InterviewSession.findById(interviewId);
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+    // Store video as base64 in answers array for demo (in production, use cloud/file storage)
+    const videoBase64 = req.file.buffer.toString('base64');
+    if (!interview.answers) interview.answers = [];
+    interview.answers[questionIndex] = { video: videoBase64, mimetype: req.file.mimetype };
+    await interview.save();
+    res.status(200).json({ success: true, message: 'Video uploaded and saved.' });
+  } catch (err) {
+    console.error('Error uploading video:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Submit interview answers and generate feedback
 app.post('/api/interview/submit', async (req, res) => {
   try {
@@ -128,16 +151,29 @@ app.post('/api/interview/submit', async (req, res) => {
     }
     interview.answers = answers;
     // Generate per-question feedback (dummy for now, replace with AI call)
-    const feedback = answers.map((ans, idx) =>
-      ans && ans.length > 0
-        ? `Good answer for Q${idx + 1}.`
-        : `No answer provided for Q${idx + 1}.`
-    );
+    let feedback;
+    if (mode === 'video') {
+      feedback = answers.map((ans, idx) =>
+        ans && ans.video
+          ? `Good video answer for Q${idx + 1}. Eye contact and clarity are important!`
+          : `No video answer provided for Q${idx + 1}.`
+      );
+    } else {
+      feedback = answers.map((ans, idx) =>
+        ans && ans.length > 0
+          ? `Good answer for Q${idx + 1}.`
+          : `No answer provided for Q${idx + 1}.`
+      );
+    }
     // Generate overall feedback (dummy for now, replace with AI call)
-    const overallFeedback =
-      mode === 'audio'
-        ? 'Great communication skills! Work on clarity and pacing.'
-        : 'Well-structured answers. Try to be more concise.';
+    let overallFeedback;
+    if (mode === 'video') {
+      overallFeedback = 'Great presence! Work on body language and confidence.';
+    } else if (mode === 'audio') {
+      overallFeedback = 'Great communication skills! Work on clarity and pacing.';
+    } else {
+      overallFeedback = 'Well-structured answers. Try to be more concise.';
+    }
     interview.feedback = feedback;
     interview.overallFeedback = overallFeedback;
     interview.status = 'completed';

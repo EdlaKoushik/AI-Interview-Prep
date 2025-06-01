@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaMicrophone, FaFont, FaVideo, FaCheckCircle } from 'react-icons/fa';
+import { FaMicrophone, FaRegKeyboard, FaVideo, FaCheckCircle } from 'react-icons/fa';
 import ResumeUpload from '../components/ResumeUpload';
 import axios from 'axios';
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
@@ -231,7 +231,7 @@ const InterviewCreationPage = () => {
                   className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition w-28 ${mode === 'text' ? 'border-[#6c47ff] bg-[#f3f0ff]' : 'border-gray-200 bg-white'} cursor-pointer`}
                   onClick={() => setMode('text')}
                 >
-                  <FaFont className="text-2xl" />
+                  <FaRegKeyboard className="text-2xl" />
                   <span>Text</span>
                 </button>
                 <button type="button"
@@ -241,10 +241,12 @@ const InterviewCreationPage = () => {
                   <FaMicrophone className="text-2xl" />
                   <span>Audio</span>
                 </button>
-                <button type="button" className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 w-28 border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed" disabled>
+                <button type="button"
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition w-28 ${mode === 'video' ? 'border-[#6c47ff] bg-[#f3f0ff]' : 'border-gray-200 bg-white'} cursor-pointer`}
+                  onClick={() => setMode('video')}
+                >
                   <FaVideo className="text-2xl" />
                   <span>Video</span>
-                  <span className="text-xs">(Coming Soon)</span>
                 </button>
               </div>
             </div>
@@ -284,7 +286,7 @@ const InterviewCreationPage = () => {
             </div>
             <div className="flex flex-col gap-2 bg-[#f7f7fb] rounded-xl shadow-inner p-6">
               <div className="flex items-center gap-3 text-lg">
-                <span className="bg-[#f3f0ff] p-2 rounded-full"><FaFont className={`text-xl ${mode==='text' ? 'text-[#6c47ff]' : 'text-gray-400'}`} /></span>
+                <span className="bg-[#f3f0ff] p-2 rounded-full"><FaRegKeyboard className={`text-xl ${mode==='text' ? 'text-[#6c47ff]' : 'text-gray-400'}`} /></span>
                 <span className="bg-[#f3f0ff] p-2 rounded-full"><FaMicrophone className={`text-xl ${mode==='audio' ? 'text-[#6c47ff]' : 'text-gray-400'}`} /></span>
                 <span className="bg-[#f3f0ff] p-2 rounded-full"><FaVideo className="text-xl text-gray-300" /></span>
                 <span className="ml-2 font-semibold">Mode:</span>

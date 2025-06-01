@@ -9,6 +9,7 @@ import {
   UserButton,
 } from "@clerk/clerk-react";
 import { Toaster, toast } from "react-hot-toast";
+import VideoRecorder from "../components/VideoRecorder";
 
 const InterviewSessionPage = () => {
   const { id } = useParams();
@@ -109,6 +110,10 @@ const InterviewSessionPage = () => {
           withCredentials: true,
         }
       );
+      // If video mode, close webcam after submit
+      if (mode === "video") {
+        window.dispatchEvent(new Event("close-webcam"));
+      }
       toast.success("Interview submitted! Redirecting to feedback...");
       setTimeout(() => navigate(`/feedback/${id}`), 1200);
     } catch (err) {
@@ -217,32 +222,64 @@ const InterviewSessionPage = () => {
                   onChange={handleAnswerChange}
                   disabled={submitting}
                 />
-              ) : (
-                <div className="flex flex-col items-start gap-2">
-                  <button
-                    type="button"
-                    onClick={listening ? stopListening : startListening}
-                    className={`px-5 py-2 rounded-lg font-bold text-white shadow transition ${
-                      listening ? "bg-red-500" : "bg-[#6c47ff] hover:bg-[#5433c6]"
-                    }`}
-                    disabled={submitting}
-                  >
-                    {listening
-                      ? "Stop Listening"
-                      : answers[current]
-                      ? "Re-record Answer"
-                      : "Start Speaking"}
-                  </button>
-                  {answers[current] && (
-                    <div className="mt-2 p-2 bg-gray-100 rounded text-gray-800 w-full">
-                      <span className="font-semibold">Transcript:</span> {answers[current]}
-                    </div>
-                  )}
-                  {listening && (
-                    <span className="text-red-500 font-semibold">Listening...</span>
-                  )}
+              ) : mode === "audio" ? (
+                <div className="flex flex-col md:flex-row gap-4 w-full">
+                  <div className="flex-1 flex flex-col items-start gap-2">
+                    <button
+                      type="button"
+                      onClick={listening ? stopListening : startListening}
+                      className={`px-5 py-2 rounded-lg font-bold text-white shadow transition ${
+                        listening ? "bg-red-500" : "bg-[#6c47ff] hover:bg-[#5433c6]"
+                      }`}
+                      disabled={submitting}
+                    >
+                      {listening
+                        ? "Stop Listening"
+                        : answers[current]
+                        ? "Re-record Answer"
+                        : "Start Speaking"}
+                    </button>
+                    {answers[current] && (
+                      <div className="mt-2 p-2 bg-gray-100 rounded text-gray-800 w-full">
+                        <span className="font-semibold">Transcript:</span> {answers[current]}
+                      </div>
+                    )}
+                    {listening && (
+                      <span className="text-red-500 font-semibold">Listening...</span>
+                    )}
+                  </div>
                 </div>
-              )}
+              ) : mode === "video" ? (
+                <div className="flex flex-col md:flex-row gap-4 w-full">
+                  <div className="flex-1 flex flex-col items-start gap-2">
+                    <button
+                      type="button"
+                      onClick={listening ? stopListening : startListening}
+                      className={`px-5 py-2 rounded-lg font-bold text-white shadow transition ${
+                        listening ? "bg-red-500" : "bg-[#6c47ff] hover:bg-[#5433c6]"
+                      }`}
+                      disabled={submitting}
+                    >
+                      {listening
+                        ? "Stop Listening"
+                        : answers[current]
+                        ? "Re-record Answer"
+                        : "Start Speaking"}
+                    </button>
+                    {answers[current] && (
+                      <div className="mt-2 p-2 bg-gray-100 rounded text-gray-800 w-full">
+                        <span className="font-semibold">Transcript:</span> {answers[current]}
+                      </div>
+                    )}
+                    {listening && (
+                      <span className="text-red-500 font-semibold">Listening...</span>
+                    )}
+                  </div>
+                  <div className="w-full md:w-1/2 flex flex-col items-center">
+                    <VideoRecorder submitting={submitting} />
+                  </div>
+                </div>
+              ) : null}
             </div>
             <div className="flex items-center justify-between">
               <div className="flex-1">
